@@ -8,6 +8,7 @@
         <div id="task-body">
             {{.Task.Body}}
         </div>
+        <a href="/input/{{.Task.Name}}">Input файл</a>
         {{ if .Done }}
         <h2>Эта задачка уже сделана, ответ {{ .Task.Answer }}</h2>
         {{ else }}

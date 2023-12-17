@@ -184,6 +184,30 @@ func main() {
 		index_tmpl.Execute(w, tasks)
 	}))
 
+	http.HandleFunc("/input/", BasicAuth(users, func(user string, w http.ResponseWriter, r *http.Request) {
+		taskSegments := strings.Split(r.URL.Path, "/")
+		if len(taskSegments) < 3 {
+			http.Error(w, "No task name", http.StatusBadRequest)
+			return
+		}
+
+		taskName := taskSegments[2]
+		var task *Task
+
+		for idx, _ := range tasks {
+			if tasks[idx].Name == taskName {
+				task = &tasks[idx]
+			}
+		}
+
+		if task == nil {
+			http.Error(w, "Can't find task", http.StatusNotFound)
+			return
+		}
+
+		w.Write([]byte(task.Input))
+	}))
+
 	http.HandleFunc("/task/", BasicAuth(users, func(user string, w http.ResponseWriter, r *http.Request) {
 		taskSegments := strings.Split(r.URL.Path, "/")
 		if len(taskSegments) < 3 {
