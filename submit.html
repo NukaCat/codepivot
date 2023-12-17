@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<head><title>Code Pivot</title></head>
+<body>
+    <a href="/task/{{.TaskName}}">Вернуться к задаче</a>
+    <ul>
+        {{ if .Accepted }} 
+            <h1>Yay правильный ответ ^_^</h1>
+        {{ else }}
+            <h1>Ответ не правильный :( Попробуй ещё раз</h1>
+        {{ end }}
+    </ul>
+</body>
+</html>

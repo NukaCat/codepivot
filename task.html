@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head><title>Code Pivot</title></head>
+<body>
+    <a href="/">Go back</a>
+    <ul>
+        <h1>{{.Task.Title}}</h1>
+        <div id="task-body">
+            {{.Task.Body}}
+        </div>
+        {{ if .Done }}
+        <h2>Эта задачка уже сделана, ответ {{ .Task.Answer }}</h2>
+        {{ else }}
+        <form action="/submit/{{ .Task.Name }}" method="post">
+            <label for="name">Ответ:</label><br>
+            <input type="text" id="answer" name="answer">
+        </form>
+        {{ end }}
+    </ul>
+</body>
+</html>

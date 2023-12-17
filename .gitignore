@@ -1,0 +1,4 @@
+*.exe
+data
+users.json
+*.user
