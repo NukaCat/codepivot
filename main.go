@@ -48,7 +48,11 @@ func parseTaskFile(filePath string) Task {
 			case "title":
 				task.Title = line
 			case "body":
-				task.Body += line + "<br>"
+				if line == "<code>" { // quick hack
+					task.Body += line
+				} else {
+					task.Body += line + "<br>"
+				}
 			case "answer":
 				task.Answer = line
 			case "input":
@@ -183,6 +187,8 @@ func main() {
 	http.HandleFunc("/", BasicAuth(users, func(user string, w http.ResponseWriter, r *http.Request) {
 		index_tmpl.Execute(w, tasks)
 	}))
+
+	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
 
 	http.HandleFunc("/input/", BasicAuth(users, func(user string, w http.ResponseWriter, r *http.Request) {
 		taskSegments := strings.Split(r.URL.Path, "/")

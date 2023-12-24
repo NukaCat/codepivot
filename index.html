@@ -1,12 +1,21 @@
 <!DOCTYPE html>
 <html>
-<head><title>Code Pivot</title></head>
+<head>
+    <title>Code Pivot</title>
+    <link rel="stylesheet" href="/static/main.css">
+</head>
 <body>
-    <h1>Code pivot</h1>
-    <ul>
-        {{range .}}
-        <li><a href="/task/{{.Name}}">{{.Title}}</a></li>
-        {{end}}
-    </ul>
+    <div id="index-main">
+        <div id="index-title-box">
+            <div id="index-title">
+            Code pivot
+            </div>
+        </div>
+        <div id="index-task-list">
+            {{range .}}
+            <a href="/task/{{.Name}}" class="index-task">{{.Title}}</a>
+            {{end}}
+        </div>
+    </div>
 </body>
 </html>
