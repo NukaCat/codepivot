@@ -185,7 +185,21 @@ func main() {
 	submit_tpl := template.Must(template.ParseFiles("submit.html"))
 
 	http.HandleFunc("/", BasicAuth(users, func(user string, w http.ResponseWriter, r *http.Request) {
-		index_tmpl.Execute(w, tasks)
+		var notDoneTasks []Task
+		var doneTasks []Task
+		for _, task := range tasks {
+			done := checkUserDoneTask(user, task.Name)
+			if done {
+				doneTasks = append(doneTasks, task)
+			} else {
+				notDoneTasks = append(notDoneTasks, task)
+			}
+		}
+		type TasksPage struct {
+			DoneTasks    []Task
+			NotDoneTasks []Task
+		}
+		index_tmpl.Execute(w, TasksPage{DoneTasks: doneTasks, NotDoneTasks: notDoneTasks})
 	}))
 
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))

@@ -41,7 +41,7 @@ body {
 #index-title {
     text-align: center;
     padding: 10px;
-    font-size: x-large;
+    font-size: xx-large;
 }
 
 #index-task-list {
@@ -52,7 +52,7 @@ body {
 .index-task {
     padding: 20px;
     text-align: center;
-    font-size: medium;
+    font-size: large;
     color: #1c1f21;
     border-top: 1px #eaeaea solid;
     text-decoration: none;
@@ -60,6 +60,17 @@ body {
 
 .index-task:hover {
     background-color: #f0f0f0;
+}
+
+.index-task-done {
+    background-color: #32373b;
+    color: gray;
+    text-decoration: line-through;
+}
+
+.index-task-done:hover {
+    background-color: #42484e;
+    color: gray;
 }
 
 

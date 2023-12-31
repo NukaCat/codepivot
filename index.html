@@ -12,8 +12,11 @@
             </div>
         </div>
         <div id="index-task-list">
-            {{range .}}
-            <a href="/task/{{.Name}}" class="index-task">{{.Title}}</a>
+            {{range .NotDoneTasks}}
+            <a href="/task/{{.Name}}" class="index-task index-task-not-done">{{.Title}}</a>
+            {{end}}
+            {{range .DoneTasks}}
+            <a href="/task/{{.Name}}" class="index-task index-task-done">{{.Title}}</a>
             {{end}}
         </div>
     </div>
