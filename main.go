@@ -9,16 +9,19 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"text/template"
 )
 
 type Task struct {
-	Name   string
-	Title  string
-	Body   string
-	Answer string
-	Input  string
+	Name    string
+	Title   string
+	Body1   string
+	Answer1 string
+	Body2   string
+	Answer2 string
+	Input   string
 }
 
 func loadTask(taskName string) (Task, error) {
@@ -42,23 +45,39 @@ func loadTask(taskName string) (Task, error) {
 		case "[title]":
 			currentSection = "title"
 		case "[body]":
-			currentSection = "body"
+			currentSection = "body1"
+		case "[body1]":
+			currentSection = "body1"
 		case "[answer]":
-			currentSection = "answer"
+			currentSection = "answer1"
+		case "[answer1]":
+			currentSection = "answer1"
+		case "[body2]":
+			currentSection = "body2"
+		case "[answer2]":
+			currentSection = "answer2"
 		case "[input]":
 			currentSection = "input"
 		default:
 			switch currentSection {
 			case "title":
 				task.Title = line
-			case "body":
+			case "body1":
 				if line == "<code>" { // quick hack
-					task.Body += line
+					task.Body1 += line
 				} else {
-					task.Body += line + "<br>"
+					task.Body1 += line + "<br>"
 				}
-			case "answer":
-				task.Answer = line
+			case "body2":
+				if line == "<code>" { // quick hack
+					task.Body2 += line
+				} else {
+					task.Body2 += line + "<br>"
+				}
+			case "answer1":
+				task.Answer1 = line
+			case "answer2":
+				task.Answer2 = line
 			case "input":
 				task.Input += line + "\n"
 			}
@@ -192,7 +211,14 @@ func MainPage(user User, w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
-		done := user.Progress[taskName] > 0
+		done := false
+		if task.Body2 == "" {
+			done = user.Progress[taskName] > 0
+		}
+		if task.Body2 != "" {
+			done = user.Progress[taskName] > 1
+		}
+
 		if done {
 			doneTasks = append(doneTasks, task)
 		} else {
@@ -222,13 +248,19 @@ func TaskPage(user User, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	done := user.Progress[task.Name] > 0
-
 	type TaskPage struct {
-		Task Task
-		Done bool
+		Task        Task
+		Progress    int
+		ShowAnswer1 bool
+		ShowBody2   bool
+		ShowAnswer2 bool
 	}
-	taskPage := TaskPage{Task: task, Done: done}
+	taskPage := TaskPage{
+		Task:        task,
+		ShowAnswer1: user.Progress[task.Name] > 0,
+		ShowBody2:   user.Progress[task.Name] > 0 && task.Body2 != "",
+		ShowAnswer2: user.Progress[task.Name] > 1 && task.Body2 != "",
+	}
 
 	taskTmpl := template.Must(template.ParseFiles("task.html"))
 	taskTmpl.Execute(w, taskPage)
@@ -246,6 +278,11 @@ func SubmitPage(user User, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if len(taskSegments) < 4 {
+		http.Error(w, "No answer number", http.StatusBadRequest)
+		return
+	}
+
 	err := r.ParseForm()
 	if err != nil {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
@@ -255,15 +292,26 @@ func SubmitPage(user User, w http.ResponseWriter, r *http.Request) {
 	answer := r.FormValue("answer")
 
 	taskName := taskSegments[2]
+	answerNumber, err := strconv.Atoi(taskSegments[3])
+	if err != nil || answerNumber < 0 || answerNumber > 2 {
+		http.Error(w, "Bad answer number", http.StatusBadRequest)
+	}
+
 	task, err := loadTask(taskName)
 	if err != nil {
 		http.Error(w, "Failed to load task", http.StatusInternalServerError)
 		return
 	}
 
-	accepted := task.Answer == answer
+	accepted := false
+	if answerNumber == 1 {
+		accepted = task.Answer1 == answer
+	}
+	if answerNumber == 2 {
+		accepted = task.Answer2 == answer
+	}
 	if accepted {
-		user.Progress[taskName] = 1
+		user.Progress[taskName] = answerNumber
 		err = saveUser(user.Name, user)
 		if err != nil {
 			http.Error(w, "Failed to update user", http.StatusInternalServerError)

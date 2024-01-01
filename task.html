@@ -10,17 +10,39 @@
             <a href="/" id="task-go-back">Go back</a>
             <div id="task-title">{{.Task.Title}}</div>
         </div>
-        <div id="task-body">
-            {{.Task.Body}}
+        <div class="task-body">
+            {{.Task.Body1}}
         </div>
+
+        {{ if not .ShowBody2 }}
         <a href="/input/{{.Task.Name}}">Input файл</a>
-        {{ if .Done }}
-        <h2>Эта задачка уже сделана, ответ {{ .Task.Answer }}</h2>
+        {{ end }}
+
+        {{ if .ShowAnswer1 }}
+        <h2>ответ {{ .Task.Answer1 }}</h2>
         {{ else }}
-        <form action="/submit/{{ .Task.Name }}" id="task-submit" method="post">
+        <form action="/submit/{{ .Task.Name }}/1" id="task-submit" method="post">
             <label for="name" class="task-answer-label">Ответ:   </label>
             <input type="text" id="answer" name="answer">
         </form>
+        {{ end }}
+
+        {{ if .ShowBody2 }}
+        <div class="task-body">
+            {{.Task.Body2}}
+        </div>
+        <a href="/input/{{.Task.Name}}">Input файл</a>
+        {{ end }}
+
+        {{ if .ShowAnswer2 }}
+        <h2>ответ {{ .Task.Answer2 }}</h2>
+        {{ else }}
+        {{ if .ShowBody2 }}
+            <form action="/submit/{{ .Task.Name }}/2" id="task-submit" method="post">
+                <label for="name" class="task-answer-label">Ответ:   </label>
+                <input type="text" id="answer" name="answer">
+            </form>
+        {{ end }}
         {{ end }}
     </div>
 </body>
