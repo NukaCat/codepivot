@@ -15,16 +15,16 @@ import (
 )
 
 type Task struct {
-	Name    string
-	Title   string
-	Body1   string
-	Answer1 string
-	Body2   string
-	Answer2 string
-	Input   string
+	Name    string `json:"name"`
+	Title   string `json:"title"`
+	Body1   string `json:"body1"`
+	Answer1 string `json:"answer1"`
+	Body2   string `json:"body2"`
+	Answer2 string `json:"answer2"`
+	Input   string `json:"-"`
 }
 
-func loadTask(taskName string) (Task, error) {
+func loadTaskOld(taskName string) (Task, error) {
 	dataDir := "data"
 	filePath := filepath.Join(dataDir, taskName+".txt")
 
@@ -90,7 +90,7 @@ func loadTask(taskName string) (Task, error) {
 	return task, nil
 }
 
-func listTaskNames() []string {
+func listTaskNamesOld() []string {
 	data_dir := "data"
 	entries, err := os.ReadDir(data_dir)
 	if err != nil {
@@ -104,6 +104,69 @@ func listTaskNames() []string {
 			continue
 		}
 		if filepath.Ext(entry.Name()) != ".txt" {
+			continue
+		}
+		taskName := strings.TrimSuffix(filepath.Base(entry.Name()), filepath.Ext(entry.Name()))
+		taskNames = append(taskNames, taskName)
+	}
+	return taskNames
+}
+
+func loadTask(taskName string) (Task, error) {
+	dataDir := "tasks"
+	filePath := filepath.Join(dataDir, taskName+".json")
+
+	file, err := os.Open(filePath)
+	defer file.Close()
+	if err != nil {
+		return Task{}, fmt.Errorf("Failed to open task task %v %v", filePath, err)
+	}
+
+	data, err := io.ReadAll(file)
+	if err != nil {
+		return Task{}, fmt.Errorf("failed to read user file %s %w", filePath, err)
+	}
+
+	var task Task
+	err = json.Unmarshal(data, &task)
+	if err != nil {
+		return Task{}, fmt.Errorf("failed to parse json file %s %w", filePath, err)
+	}
+
+	return task, nil
+}
+
+func saveTask(task Task) error {
+	dataDir := "tasks"
+	filePath := filepath.Join(dataDir, task.Name+".json")
+
+	jsonData, err := json.MarshalIndent(task, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to save json file %s %w", filePath, err)
+	}
+
+	err = os.WriteFile(filePath, jsonData, 0666)
+	if err != nil {
+		return fmt.Errorf("failed to save json file %s %w", filePath, err)
+	}
+
+	return nil
+}
+
+func listTaskNames() []string {
+	data_dir := "tasks"
+	entries, err := os.ReadDir(data_dir)
+	if err != nil {
+		fmt.Println("failed to find tasks dir")
+		return make([]string, 0)
+	}
+
+	var taskNames []string
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		if filepath.Ext(entry.Name()) != ".json" {
 			continue
 		}
 		taskName := strings.TrimSuffix(filepath.Base(entry.Name()), filepath.Ext(entry.Name()))
@@ -338,16 +401,47 @@ func InputFile(user User, w http.ResponseWriter, r *http.Request) {
 	}
 
 	taskName := taskSegments[2]
-	task, err := loadTask(taskName)
+	data, err := os.ReadFile(filepath.Join("tasks", taskName+".input"))
 	if err != nil {
-		http.Error(w, "Can't find task", http.StatusNotFound)
+		http.Error(w, "Can't load input file", http.StatusNotFound)
 		return
 	}
 
-	w.Write([]byte(task.Input))
+	w.Write([]byte(data))
+}
+
+func migrate() {
+	taskNames := listTaskNamesOld()
+	if len(taskNames) == 0 {
+		return
+	}
+
+	err := os.MkdirAll("tasks", os.ModePerm)
+	if err != nil {
+		log.Fatalf("migration error, can't create tasks dir %v", err)
+	}
+
+	for _, taskName := range taskNames {
+		task, err := loadTaskOld(taskName)
+		if err != nil {
+			log.Fatalf("migration error, can't load task %v", err)
+		}
+		err = os.WriteFile(filepath.Join("tasks", taskName+".input"), []byte(task.Input), 0666)
+		if err != nil {
+			log.Fatalf("migration error, can't wirte input file %v", err)
+		}
+
+		task.Input = ""
+		err = saveTask(task)
+		if err != nil {
+			log.Fatalf("migration error, failed to save task %s %v", task.Name, err)
+		}
+	}
+
 }
 
 func main() {
+	migrate()
 
 	http.HandleFunc("/", BasicAuth(MainPage))
 
