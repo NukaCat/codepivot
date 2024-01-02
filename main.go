@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -22,94 +21,6 @@ type Task struct {
 	Body2   string `json:"body2"`
 	Answer2 string `json:"answer2"`
 	Input   string `json:"-"`
-}
-
-func loadTaskOld(taskName string) (Task, error) {
-	dataDir := "data"
-	filePath := filepath.Join(dataDir, taskName+".txt")
-
-	file, err := os.Open(filePath)
-	defer file.Close()
-	if err != nil {
-		return Task{}, fmt.Errorf("Failed to open task task %v %v", filePath, err)
-	}
-
-	scanner := bufio.NewScanner(file)
-	var task Task
-	var currentSection string
-
-	task.Name = taskName
-	for scanner.Scan() {
-		line := scanner.Text()
-		switch line {
-		case "[title]":
-			currentSection = "title"
-		case "[body]":
-			currentSection = "body1"
-		case "[body1]":
-			currentSection = "body1"
-		case "[answer]":
-			currentSection = "answer1"
-		case "[answer1]":
-			currentSection = "answer1"
-		case "[body2]":
-			currentSection = "body2"
-		case "[answer2]":
-			currentSection = "answer2"
-		case "[input]":
-			currentSection = "input"
-		default:
-			switch currentSection {
-			case "title":
-				task.Title = line
-			case "body1":
-				if line == "<code>" { // quick hack
-					task.Body1 += line
-				} else {
-					task.Body1 += line + "<br>"
-				}
-			case "body2":
-				if line == "<code>" { // quick hack
-					task.Body2 += line
-				} else {
-					task.Body2 += line + "<br>"
-				}
-			case "answer1":
-				task.Answer1 = line
-			case "answer2":
-				task.Answer2 = line
-			case "input":
-				task.Input += line + "\n"
-			}
-		}
-	}
-
-	if scanner.Err() != nil {
-		return Task{}, fmt.Errorf("Failed to read task %v %v", filePath, err)
-	}
-	return task, nil
-}
-
-func listTaskNamesOld() []string {
-	data_dir := "data"
-	entries, err := os.ReadDir(data_dir)
-	if err != nil {
-		fmt.Println("failed to find tasks dir")
-		return make([]string, 0)
-	}
-
-	var taskNames []string
-	for _, entry := range entries {
-		if entry.IsDir() {
-			continue
-		}
-		if filepath.Ext(entry.Name()) != ".txt" {
-			continue
-		}
-		taskName := strings.TrimSuffix(filepath.Base(entry.Name()), filepath.Ext(entry.Name()))
-		taskNames = append(taskNames, taskName)
-	}
-	return taskNames
 }
 
 func loadTask(taskName string) (Task, error) {
@@ -410,39 +321,7 @@ func InputFile(user User, w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(data))
 }
 
-func migrate() {
-	taskNames := listTaskNamesOld()
-	if len(taskNames) == 0 {
-		return
-	}
-
-	err := os.MkdirAll("tasks", os.ModePerm)
-	if err != nil {
-		log.Fatalf("migration error, can't create tasks dir %v", err)
-	}
-
-	for _, taskName := range taskNames {
-		task, err := loadTaskOld(taskName)
-		if err != nil {
-			log.Fatalf("migration error, can't load task %v", err)
-		}
-		err = os.WriteFile(filepath.Join("tasks", taskName+".input"), []byte(task.Input), 0666)
-		if err != nil {
-			log.Fatalf("migration error, can't wirte input file %v", err)
-		}
-
-		task.Input = ""
-		err = saveTask(task)
-		if err != nil {
-			log.Fatalf("migration error, failed to save task %s %v", task.Name, err)
-		}
-	}
-
-}
-
 func main() {
-	migrate()
-
 	http.HandleFunc("/", BasicAuth(MainPage))
 
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
