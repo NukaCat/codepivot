@@ -359,5 +359,8 @@ func main() {
 
 	http.HandleFunc("/submit/", BasicAuth(SubmitPage))
 
-	http.ListenAndServe(":8080", nil)
+	err := http.ListenAndServe(":8080", nil)
+	if err != nil {
+		log.Fatalf("Serve error %v", err)
+	}
 }
