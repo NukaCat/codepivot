@@ -12,12 +12,16 @@
             </div>
         </div>
         <div id="index-task-list">
-            {{range .NotDoneTasks}}
+            {{ range .NotDoneTasks }}
             <a href="/task/{{.Name}}" class="index-task index-task-not-done">{{.Title}}</a>
             {{end}}
+
             {{range .DoneTasks}}
             <a href="/task/{{.Name}}" class="index-task index-task-done">{{.Title}}</a>
             {{end}}
+            {{ if $.ShowEditLinks }} 
+            <a href="/edit" class="index-task index-create">Create New</a>
+            {{ end }}
         </div>
     </div>
 </body>

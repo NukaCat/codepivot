@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Code Pivot</title>
+    <link rel="stylesheet" href="/static/main.css">
+</head>
+<body>
+    <div id="edit-main">
+        <form action="/edit_submit/{{ .Name }}" id="edit-task-form" method="post">
+            <label for="name">Name</label>
+            {{ if eq .Name ""}}
+            <input type="text" name="name"></input>
+            {{ else }}
+            <input type="text" name="name" value="{{ .Name }}" readonly></input>
+            {{ end }}
+
+            <label for="title">Title</label>
+            <input type="text" name="title" value="{{ .Title }}"></input>
+
+            <label for="body1">Body1</label>
+            <textarea name="body1" rows="20">{{ .Body1 }}</textarea>
+
+            <label for="answer1">Answer1</label>
+            <input type="text" name="answer1" value="{{ .Answer1 }}"></input>
+
+            <label for="body2">Body2</label>
+            <textarea name="body2" rows="20">{{ .Body2 }}</textarea>
+
+            <label for="answer2">Answer2</label>
+            <input type="text" name="answer2" value="{{ .Answer2 }}"></input>
+
+            <label for="file">Input file</label>
+            <input type="file" name="file1"></input>
+
+            <input type="submit" value="Submit"></input>
+        </form>
+    </div>
+</body>
+</html>

@@ -1,3 +1,7 @@
+textarea {
+    resize: vertical;
+}
+
 code {
     background: #f4f5f7;
     border: 1px solid #dfe1e6;
@@ -73,6 +77,14 @@ body {
     color: gray;
 }
 
+.index-create {
+    background-color: #ff8f73;
+}
+
+.index-create:hover {
+    background-color: #ffb09c;
+}
+
 
 #task-main {
     margin-left: auto;
@@ -96,6 +108,12 @@ body {
     top: 0px;
 }
 
+#task-edit {
+    position: absolute;
+    right: 0px;
+    top: 0px;
+}
+
 #task-title {
     grid-row: 1;
     grid-column: 1;
@@ -113,4 +131,19 @@ body {
     flex-direction: row;
     gap: 10px;
     margin-top: 10px;
+}
+
+#edit-task-form {
+    display: flex;
+    flex-direction: column;
+}
+
+#edit-main {
+    margin-left: auto;
+    margin-right: auto;
+    width: 50%;
+    border: 1px solid #dfe1e6;
+    background-color: white;
+    border-radius: 4px;
+    padding: 20px;
 }

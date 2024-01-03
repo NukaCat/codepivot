@@ -44,6 +44,9 @@ func loadTask(taskName string) (Task, error) {
 		return Task{}, fmt.Errorf("failed to parse json file %s %w", filePath, err)
 	}
 
+	task.Body1 = strings.Replace(task.Body1, "<br>", "\n", -1)
+	task.Body2 = strings.Replace(task.Body2, "<br>", "\n", -1)
+
 	return task, nil
 }
 
@@ -90,6 +93,7 @@ type User struct {
 	Name     string         `json:"name"`
 	Password string         `json:"password"`
 	Progress map[string]int `json:"progress"`
+	Admin    bool           `json:"admin"`
 }
 
 func loadUser(userName string) (User, error) {
@@ -199,13 +203,15 @@ func MainPage(user User, w http.ResponseWriter, r *http.Request) {
 			notDoneTasks = append(notDoneTasks, task)
 		}
 	}
+
 	type TasksPage struct {
-		DoneTasks    []Task
-		NotDoneTasks []Task
+		DoneTasks     []Task
+		NotDoneTasks  []Task
+		ShowEditLinks bool
 	}
 
 	indexTmpl := template.Must(template.ParseFiles("index.html"))
-	indexTmpl.Execute(w, TasksPage{DoneTasks: doneTasks, NotDoneTasks: notDoneTasks})
+	indexTmpl.Execute(w, TasksPage{DoneTasks: doneTasks, NotDoneTasks: notDoneTasks, ShowEditLinks: user.Admin})
 }
 
 func TaskPage(user User, w http.ResponseWriter, r *http.Request) {
@@ -222,18 +228,23 @@ func TaskPage(user User, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	task.Body1 = strings.Replace(task.Body1, "\n", "<br>", -1)
+	task.Body2 = strings.Replace(task.Body2, "\n", "<br>", -1)
+
 	type TaskPage struct {
-		Task        Task
-		Progress    int
-		ShowAnswer1 bool
-		ShowBody2   bool
-		ShowAnswer2 bool
+		Task          Task
+		Progress      int
+		ShowAnswer1   bool
+		ShowBody2     bool
+		ShowAnswer2   bool
+		ShowEditLinks bool
 	}
 	taskPage := TaskPage{
-		Task:        task,
-		ShowAnswer1: user.Progress[task.Name] > 0,
-		ShowBody2:   user.Progress[task.Name] > 0 && task.Body2 != "",
-		ShowAnswer2: user.Progress[task.Name] > 1 && task.Body2 != "",
+		Task:          task,
+		ShowAnswer1:   user.Progress[task.Name] > 0,
+		ShowBody2:     user.Progress[task.Name] > 0 && task.Body2 != "",
+		ShowAnswer2:   user.Progress[task.Name] > 1 && task.Body2 != "",
+		ShowEditLinks: user.Admin,
 	}
 
 	taskTmpl := template.Must(template.ParseFiles("task.html"))
@@ -321,6 +332,81 @@ func InputFile(user User, w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(data))
 }
 
+func EditPage(user User, w http.ResponseWriter, r *http.Request) {
+	if !user.Admin {
+		http.Error(w, "No access", http.StatusForbidden)
+		return
+	}
+
+	taskName := ""
+	taskSegments := strings.Split(r.URL.Path, "/")
+	if len(taskSegments) >= 3 {
+		taskName = taskSegments[2]
+	}
+
+	var task Task
+	var err error
+	if taskName != "" {
+		task, err = loadTask(taskName)
+		if err != nil {
+			task = Task{}
+		}
+	}
+
+	editTpl := template.Must(template.ParseFiles("edit.html"))
+	editTpl.Execute(w, task)
+}
+
+func EditSubmitPage(user User, w http.ResponseWriter, r *http.Request) {
+	if !user.Admin {
+		http.Error(w, "No access", http.StatusForbidden)
+		return
+	}
+
+	if r.Method != http.MethodPost {
+		http.Error(w, "Not post request", http.StatusBadRequest)
+		return
+	}
+
+	taskSegments := strings.Split(r.URL.Path, "/")
+	if len(taskSegments) < 3 {
+		http.Error(w, "No task name", http.StatusBadRequest)
+		return
+	}
+
+	var task Task
+
+	task.Name = r.FormValue("name")
+	task.Title = r.FormValue("title")
+	task.Answer1 = r.FormValue("answer1")
+	task.Body1 = r.FormValue("body1")
+	task.Answer2 = r.FormValue("answer2")
+	task.Body2 = r.FormValue("body2")
+
+	if task.Name == "" {
+		http.Error(w, "Task with no name", http.StatusBadRequest)
+		return
+	}
+
+	inputFile := r.FormValue("input")
+	if inputFile != "" {
+		inputFilePath := filepath.Join("tasks", task.Name+".input")
+		err := os.WriteFile(inputFilePath, []byte(inputFile), 0666)
+		if err != nil {
+			http.Error(w, "failed to save input file for task", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	err := saveTask(task)
+	if err != nil {
+		http.Error(w, "failed to save task", http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
 func main() {
 	http.HandleFunc("/", BasicAuth(MainPage))
 
@@ -331,6 +417,10 @@ func main() {
 	http.HandleFunc("/task/", BasicAuth(TaskPage))
 
 	http.HandleFunc("/submit/", BasicAuth(SubmitPage))
+
+	http.HandleFunc("/edit/", BasicAuth(EditPage))
+
+	http.HandleFunc("/edit_submit/", BasicAuth(EditSubmitPage))
 
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {

@@ -9,6 +9,9 @@
         <div id="task-head-box">
             <a href="/" id="task-go-back">Go back</a>
             <div id="task-title">{{.Task.Title}}</div>
+            {{ if $.ShowEditLinks }} 
+            <a href="/edit/{{.Task.Name}}" class="task-edit">Edit</a>
+            {{ end }}
         </div>
         <div class="task-body">
             {{.Task.Body1}}
